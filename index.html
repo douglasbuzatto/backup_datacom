@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Configuração de Rede</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        input, button { margin: 10px 0; }
+        #output { white-space: pre-wrap; background-color: #f0f0f0; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Gerador de Configuração de Rede</h1>
+    <input type="text" id="clientName" placeholder="Nome do cliente">
+    <button onclick="generateConfig()">Gerar Configuração</button>
+    <button onclick="saveConfig()">Salvar Configuração</button>
+    <h2>Configuração Gerada:</h2>
+    <pre id="output"></pre>
+    <h2>Configurações Salvas:</h2>
+    <ul id="savedConfigs"></ul>
+
+    <script>
+        let lastUsedIP = 53;
+        const savedConfigs = JSON.parse(localStorage.getItem('savedConfigs')) || [];
+
+        function updateSavedConfigsList() {
+            const list = document.getElementById('savedConfigs');
+            list.innerHTML = '';
+            savedConfigs.forEach(config => {
+                const li = document.createElement('li');
+                li.textContent = config.clientName;
+                list.appendChild(li);
+            });
+        }
+
+function generateConfig() {
+    const clientName = document.getElementById('clientName').value;
+    if (!clientName) {
+        alert('Por favor, insira o nome do cliente.');
+        return;
+    }
+
+    lastUsedIP += 4;
+    const networkIP = lastUsedIP - 1;
+    const deviceIP = lastUsedIP;
+    const cpeIP = lastUsedIP + 2;
+
+    const config = `# Cliente: ${clientName}
+/ip address
+add address=100.100.0.${deviceIP}/30 comment=--${clientName}-- interface=Vlanif_770_MGMT_DEVICES network=100.100.0.${networkIP}
+add address=100.100.1.${deviceIP}/30 comment=--${clientName}-- interface=Vlanif_772_TRF_INTERNET network=100.100.1.${networkIP}
+
+
+# CPE
+/ip address
+add address=100.100.0.${cpeIP}/30 interface="VID770.MNGM CLIENTES CORP - C1" network=100.100.0.${networkIP}
+add address=100.100.1.${cpeIP}/30 interface="VID772.TRFG CLIENTES CORP - C1" network=100.100.1.${networkIP}
+
+
+/routing ospf instance
+set [ find default=yes ] disabled=yes
+add in-filter=pe-ospf-in name=cpe-mgmt_gpon out-filter=pe-ospf-out router-id=100.100.0.${networkIP}
+add in-filter=ospf-in-trf name=cpe-traf_gpon out-filter=pe-ospf-out redistribute-connected=as-type-1 router-id=100.100.1.${networkIP}
+
+/routing ospf area
+add area-id=0.0.0.100 instance=cpe-mgmt_gpon name=cpe-mgmt_gpon
+add area-id=0.0.1.100 instance=cpe-traf_gpon name=cpe-traf_gpon
+
+/routing ospf network
+add area=cpe-mgmt_gpon network=100.100.0.${networkIP}/30
+add area=cpe-traf_gpon network=100.100.1.${networkIP}/30`;
+
+    document.getElementById('output').textContent = config;
+}
+
+        function saveConfig() {
+            const config = document.getElementById('output').textContent;
+            const clientName = document.getElementById('clientName').value;
+            if (!config || !clientName) {
+                alert('Por favor, gere uma configuração primeiro.');
+                return;
+            }
+
+            savedConfigs.push({ clientName, config });
+            localStorage.setItem('savedConfigs', JSON.stringify(savedConfigs));
+            updateSavedConfigsList();
+            alert('Configuração salva com sucesso!');
+        }
+
+        updateSavedConfigsList();
+    </script>
+</body>
+</html>
