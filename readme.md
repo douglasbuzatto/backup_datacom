@@ -3,7 +3,7 @@
 Uma ferramenta robusta para backup automático de configurações de dispositivos Datacom (OLTs e Switches).
 
 ## Características
-- 📦 Backup automático de múltiplos dispositivos
+- 💾 Backup automático de múltiplos dispositivos
 - 🔍 Seleção individual ou em massa de dispositivos
 - 🌐 Teste de conectividade integrado
 - 💾 Armazenamento local e remoto (FTP)
